@@ -68,7 +68,9 @@ describe('listPipelineRuns unit', () => {
 
     expect(mockConnection.getPipelinesApi).toHaveBeenCalled();
     expect(mockRestGet).toHaveBeenCalled();
-    expect(result.runs).toEqual(sampleRuns);
+    expect(result.runs).toEqual([
+      { ...sampleRuns[0], state: 'completed', result: 'succeeded' },
+    ]);
     expect(result.continuationToken).toBe('token-from-header');
 
     const [requestUrl] = mockRestGet.mock.calls[0];
@@ -147,6 +149,165 @@ describe('listPipelineRuns unit', () => {
     });
 
     expect(result.continuationToken).toBe('body-token');
+  });
+
+  it('enforces top, filters, and sorting client-side when the server ignores query params', async () => {
+    const serverRuns: Run[] = [
+      {
+        id: 303,
+        name: 'Run 303',
+        createdDate: new Date('2024-02-10T10:00:00Z'),
+        state: 'completed' as unknown as RunState,
+        result: 'canceled' as unknown as RunResult,
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/303',
+      },
+      {
+        id: 302,
+        name: 'Run 302',
+        createdDate: new Date('2024-01-15T10:00:00Z'),
+        state: 'completed' as unknown as RunState,
+        result: 'succeeded' as unknown as RunResult,
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/302',
+      },
+      {
+        id: 301,
+        name: 'Run 301',
+        createdDate: new Date('2024-01-05T10:00:00Z'),
+        state: 'inProgress' as unknown as RunState,
+        result: 'none' as unknown as RunResult,
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/301',
+      },
+      {
+        id: 300,
+        name: 'Run 300',
+        createdDate: new Date('2023-12-01T10:00:00Z'),
+        state: 'completed' as unknown as RunState,
+        result: 'succeeded' as unknown as RunResult,
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/300',
+      },
+    ];
+
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: { value: serverRuns },
+      headers: {},
+    });
+
+    const result = await listPipelineRuns(mockConnection, {
+      projectId: 'test-project',
+      pipelineId: 42,
+      top: 10,
+      state: 'completed',
+      result: 'succeeded',
+      createdFrom: '2024-01-01T00:00:00Z',
+      createdTo: '2024-12-31T23:59:59Z',
+    });
+
+    expect(result.runs.map((run) => run.id)).toEqual([302]);
+    expect(result.warnings).toBeUndefined();
+  });
+
+  it('applies top slice and ascending sort client-side', async () => {
+    const serverRuns: Run[] = [
+      {
+        id: 103,
+        createdDate: new Date('2024-01-03T00:00:00Z'),
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/103',
+      },
+      {
+        id: 102,
+        createdDate: new Date('2024-01-02T00:00:00Z'),
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/102',
+      },
+      {
+        id: 101,
+        createdDate: new Date('2024-01-01T00:00:00Z'),
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/101',
+      },
+    ];
+
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: { value: serverRuns },
+      headers: {},
+    });
+
+    const result = await listPipelineRuns(mockConnection, {
+      projectId: 'test-project',
+      pipelineId: 42,
+      top: 2,
+      orderBy: 'createdDate asc',
+    });
+
+    expect(result.runs.map((run) => run.id)).toEqual([101, 102]);
+  });
+
+  it('warns when the branch filter cannot be applied', async () => {
+    const serverRuns: Run[] = [
+      {
+        id: 102,
+        createdDate: new Date('2024-01-02T00:00:00Z'),
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/102',
+      },
+      {
+        id: 101,
+        createdDate: new Date('2024-01-01T00:00:00Z'),
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/101',
+      },
+    ];
+
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: { value: serverRuns },
+      headers: {},
+    });
+
+    const result = await listPipelineRuns(mockConnection, {
+      projectId: 'test-project',
+      pipelineId: 42,
+      top: 1,
+      branch: 'main',
+    });
+
+    expect(result.runs.map((run) => run.id)).toEqual([102]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings?.[0]).toContain('branch');
+  });
+
+  it('filters by branch when run payloads include repository data', async () => {
+    const serverRuns: Run[] = [
+      {
+        id: 102,
+        createdDate: new Date('2024-01-02T00:00:00Z'),
+        resources: {
+          repositories: { builds: { refName: 'refs/heads/develop' } },
+        },
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/102',
+      },
+      {
+        id: 101,
+        createdDate: new Date('2024-01-01T00:00:00Z'),
+        resources: {
+          repositories: { builds: { refName: 'refs/heads/main' } },
+        },
+        url: 'https://dev.azure.com/org/project/_apis/pipelines/42/runs/101',
+      },
+    ];
+
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: { value: serverRuns },
+      headers: {},
+    });
+
+    const result = await listPipelineRuns(mockConnection, {
+      projectId: 'test-project',
+      pipelineId: 42,
+      branch: 'main',
+    });
+
+    expect(result.runs.map((run) => run.id)).toEqual([101]);
+    expect(result.warnings).toBeUndefined();
   });
 
   it('throws resource not found when API returns 404', async () => {

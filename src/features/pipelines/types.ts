@@ -63,6 +63,7 @@ export interface ListPipelineRunsOptions {
 export interface ListPipelineRunsResult {
   runs: Run[];
   continuationToken?: string;
+  warnings?: string[];
 }
 
 /**
