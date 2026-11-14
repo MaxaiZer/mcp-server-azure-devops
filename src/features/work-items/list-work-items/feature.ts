@@ -10,6 +10,7 @@ import {
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
 import { ListWorkItemsOptions, WorkItem as WorkItemType } from '../types';
+import { compactWorkItemFields } from '../../../shared/utils/compact-identity';
 
 /**
  * Constructs the default WIQL query for listing work items
@@ -94,7 +95,9 @@ export async function listWorkItems(
       return [];
     }
 
-    return workItems.filter((wi): wi is WorkItem => wi !== undefined);
+    return workItems
+      .filter((wi): wi is WorkItem => wi !== undefined)
+      .map(compactWorkItemFields);
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;

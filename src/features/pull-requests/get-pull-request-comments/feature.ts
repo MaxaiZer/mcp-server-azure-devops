@@ -9,6 +9,10 @@ import {
   transformCommentThreadStatus,
   transformCommentType,
 } from '../../../shared/enums';
+import {
+  toCompactIdentity,
+  CompactIdentity,
+} from '../../../shared/utils/compact-identity';
 
 /**
  * Get comments from a pull request
@@ -66,6 +70,22 @@ export async function getPullRequestComments(
   }
 }
 
+function compactThreadIdentities(
+  identities: Record<string, unknown> | undefined,
+) {
+  if (!identities) {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    Object.entries(identities)
+      .map(([key, identity]) => [key, toCompactIdentity(identity)])
+      .filter(
+        (entry): entry is [string, CompactIdentity] => entry[1] !== undefined,
+      ),
+  );
+}
+
 /**
  * Transform a comment thread to include filePath and lineNumber fields
  * @param thread The original comment thread
@@ -74,9 +94,12 @@ export async function getPullRequestComments(
 function transformThread(
   thread: GitPullRequestCommentThread,
 ): CommentThreadWithStringEnums {
+  const identities = compactThreadIdentities(thread.identities);
+
   if (!thread.comments) {
     return {
       ...thread,
+      ...(identities ? { identities } : {}),
       status: transformCommentThreadStatus(thread.status),
       comments: undefined,
     };
@@ -102,20 +125,32 @@ function transformThread(
       : undefined;
 
   // Transform each comment to include the new fields and string enums
-  const transformedComments = thread.comments.map((comment) => ({
-    ...comment,
-    filePath,
-    leftFileStart,
-    leftFileEnd,
-    rightFileStart,
-    rightFileEnd,
-    // Transform enum values to strings
-    commentType: transformCommentType(comment.commentType),
-  }));
+  const transformedComments = thread.comments.map((comment) => {
+    const author = toCompactIdentity(comment.author);
+    return {
+      ...comment,
+      ...(author ? { author } : {}),
+      ...(comment.usersLiked
+        ? {
+            usersLiked: comment.usersLiked
+              .map(toCompactIdentity)
+              .filter((entry): entry is CompactIdentity => entry !== undefined),
+          }
+        : {}),
+      filePath,
+      leftFileStart,
+      leftFileEnd,
+      rightFileStart,
+      rightFileEnd,
+      // Transform enum values to strings
+      commentType: transformCommentType(comment.commentType),
+    };
+  });
 
   return {
     ...thread,
     comments: transformedComments,
+    ...(identities ? { identities } : {}),
     // Transform thread status to string
     status: transformCommentThreadStatus(thread.status),
   };

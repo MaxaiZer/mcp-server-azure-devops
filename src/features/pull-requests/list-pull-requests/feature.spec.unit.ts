@@ -67,6 +67,60 @@ describe('listPullRequests', () => {
     );
   });
 
+  test('should compact identity fields on every listed pull request', async () => {
+    const fullIdentity = {
+      displayName: 'Maksim Strygin',
+      url: 'http://server/_apis/Identities/2268fe44-47a4-414f-985b-ad5e5539fb45',
+      _links: {
+        avatar: {
+          href: 'http://server/_apis/GraphProfile/MemberAvatars/win.abc',
+        },
+      },
+      id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+      uniqueName: 'RUSSIA\\StryginM',
+      imageUrl: 'http://server/_api/_common/identityImage?id=2268fe44',
+      descriptor: 'win.abc',
+    };
+
+    const mockPullRequests = [
+      {
+        pullRequestId: 1,
+        title: 'Test PR 1',
+        createdBy: fullIdentity,
+        reviewers: [{ ...fullIdentity, vote: 10, reviewerUrl: 'http://x' }],
+      },
+    ];
+
+    const mockGitApi = {
+      getPullRequests: jest.fn().mockResolvedValue(mockPullRequests),
+    };
+
+    const mockConnection: any = {
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    };
+
+    const result = await listPullRequests(
+      mockConnection as WebApi,
+      'test-project',
+      'test-repo',
+      { projectId: 'test-project', repositoryId: 'test-repo', top: 10 },
+    );
+
+    expect(result.value[0].createdBy).toEqual({
+      id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+      displayName: 'Maksim Strygin',
+      uniqueName: 'RUSSIA\\StryginM',
+    });
+    expect(result.value[0].reviewers).toEqual([
+      {
+        id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+        displayName: 'Maksim Strygin',
+        uniqueName: 'RUSSIA\\StryginM',
+        vote: 10,
+      },
+    ]);
+  });
+
   test('should return empty array when no pull requests exist', async () => {
     // Setup mock connection
     const mockGitApi = {

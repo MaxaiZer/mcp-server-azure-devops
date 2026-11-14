@@ -8,6 +8,7 @@ import {
   AzureDevOpsError,
 } from '../../../shared/errors';
 import { GetWorkItemCommentsOptions, CommentList } from '../types';
+import { toCompactIdentity } from '../../../shared/utils/compact-identity';
 
 /**
  * Maps string-based expansion options to the CommentExpandOptions enum
@@ -112,7 +113,21 @@ export async function getWorkItemComments(
       );
     }
 
-    return commentList;
+    return {
+      ...commentList,
+      comments: commentList.comments?.map((comment) => {
+        const createdBy = toCompactIdentity(comment.createdBy);
+        const modifiedBy = toCompactIdentity(comment.modifiedBy);
+        const createdOnBehalfOf = toCompactIdentity(comment.createdOnBehalfOf);
+
+        return {
+          ...comment,
+          ...(createdBy ? { createdBy } : {}),
+          ...(modifiedBy ? { modifiedBy } : {}),
+          ...(createdOnBehalfOf ? { createdOnBehalfOf } : {}),
+        };
+      }),
+    };
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;

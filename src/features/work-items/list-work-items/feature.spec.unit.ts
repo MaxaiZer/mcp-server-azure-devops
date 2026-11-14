@@ -197,6 +197,58 @@ describe('listWorkItems unit', () => {
     );
   });
 
+  test('should compact identity objects in fields and leave other values untouched', async () => {
+    // Arrange
+    const fullIdentity = {
+      displayName: 'Maksim Strygin',
+      url: 'http://server/_apis/Identities/2268fe44-47a4-414f-985b-ad5e5539fb45',
+      _links: {
+        avatar: {
+          href: 'http://server/_apis/GraphProfile/MemberAvatars/win.abc',
+        },
+      },
+      id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+      uniqueName: 'RUSSIA\\StryginM',
+      imageUrl: 'http://server/_api/_common/identityImage?id=2268fe44',
+      descriptor: 'win.abc',
+    };
+
+    const mockWorkItemRefs = [{ id: 1 }];
+    const mockWorkItems = [
+      {
+        id: 1,
+        fields: {
+          'System.AssignedTo': fullIdentity,
+          'System.Title': 'Item 1',
+          'System.State': 'New',
+        },
+      },
+    ];
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockImplementation(() => ({
+        queryByWiql: jest
+          .fn()
+          .mockResolvedValue({ workItems: mockWorkItemRefs }),
+        getWorkItems: jest.fn().mockResolvedValue(mockWorkItems),
+      })),
+    };
+
+    // Act
+    const result = await listWorkItems(mockConnection, {
+      projectId: 'test-project',
+    });
+
+    // Assert
+    expect(result[0].fields?.['System.AssignedTo']).toEqual({
+      id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+      displayName: 'Maksim Strygin',
+      uniqueName: 'RUSSIA\\StryginM',
+    });
+    expect(result[0].fields?.['System.Title']).toBe('Item 1');
+    expect(result[0].fields?.['System.State']).toBe('New');
+  });
+
   test('should deduplicate fields when a requested field overlaps with a default field', async () => {
     // Arrange
     const mockWorkItemRefs = [{ id: 1 }];

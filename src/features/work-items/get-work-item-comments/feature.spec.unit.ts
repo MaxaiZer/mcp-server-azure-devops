@@ -95,6 +95,58 @@ describe('getWorkItemComments unit', () => {
     );
   });
 
+  test('should compact createdBy, modifiedBy and createdOnBehalfOf on comments', async () => {
+    const fullIdentity = {
+      displayName: 'Maksim Strygin',
+      url: 'http://server/_apis/Identities/2268fe44-47a4-414f-985b-ad5e5539fb45',
+      _links: {
+        avatar: {
+          href: 'http://server/_apis/GraphProfile/MemberAvatars/win.abc',
+        },
+      },
+      id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+      uniqueName: 'RUSSIA\\StryginM',
+      imageUrl: 'http://server/_api/_common/identityImage?id=2268fe44',
+      descriptor: 'win.abc',
+    };
+
+    const mockGetComments = jest.fn().mockResolvedValue({
+      totalCount: 1,
+      count: 1,
+      comments: [
+        {
+          id: 1,
+          text: 'Comment text',
+          createdBy: fullIdentity,
+          modifiedBy: fullIdentity,
+          createdOnBehalfOf: fullIdentity,
+        },
+      ],
+    });
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getComments: mockGetComments,
+      }),
+    };
+
+    const result = await getWorkItemComments(mockConnection, {
+      workItemId: 123,
+      projectId: 'myProject',
+    });
+
+    const compactIdentity = {
+      id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+      displayName: 'Maksim Strygin',
+      uniqueName: 'RUSSIA\\StryginM',
+    };
+
+    expect(result.comments?.[0].createdBy).toEqual(compactIdentity);
+    expect(result.comments?.[0].modifiedBy).toEqual(compactIdentity);
+    expect(result.comments?.[0].createdOnBehalfOf).toEqual(compactIdentity);
+    expect(result.comments?.[0].text).toBe('Comment text');
+  });
+
   test('should map 404 project resolution errors to resource not found', async () => {
     const notFoundError = Object.assign(new Error('Not found'), {
       statusCode: 404,

@@ -103,6 +103,126 @@ describe('getPullRequestComments', () => {
     expect(mockGitApi.getPullRequestThread).not.toHaveBeenCalled();
   });
 
+  test('should compact author, usersLiked and thread identities', async () => {
+    const fullIdentity = {
+      displayName: 'Maksim Strygin',
+      url: 'http://server/_apis/Identities/2268fe44-47a4-414f-985b-ad5e5539fb45',
+      _links: {
+        avatar: {
+          href: 'http://server/_apis/GraphProfile/MemberAvatars/win.abc',
+        },
+      },
+      id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+      uniqueName: 'RUSSIA\\StryginM',
+      imageUrl: 'http://server/_api/_common/identityImage?id=2268fe44',
+      descriptor: 'win.abc',
+    };
+
+    const mockCommentThreads: GitPullRequestCommentThread[] = [
+      {
+        id: 1,
+        status: 1,
+        comments: [
+          {
+            id: 100,
+            content: 'Policy status has been updated',
+            commentType: 1,
+            author: fullIdentity,
+            usersLiked: [fullIdentity],
+            publishedDate: new Date(),
+          },
+        ],
+        identities: { '1': fullIdentity },
+      },
+    ];
+
+    const mockGitApi = {
+      getThreads: jest.fn().mockResolvedValue(mockCommentThreads),
+      getPullRequestThread: jest.fn(),
+    };
+
+    const mockConnection: any = {
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    };
+
+    const result = await getPullRequestComments(
+      mockConnection as WebApi,
+      'test-project',
+      'test-repo',
+      42,
+      {
+        projectId: 'test-project',
+        repositoryId: 'test-repo',
+        pullRequestId: 42,
+      },
+    );
+
+    const compactIdentity = {
+      id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+      displayName: 'Maksim Strygin',
+      uniqueName: 'RUSSIA\\StryginM',
+    };
+
+    expect(result[0].comments?.[0].author).toEqual(compactIdentity);
+    expect(result[0].comments?.[0].usersLiked).toEqual([compactIdentity]);
+    expect(result[0].identities).toEqual({ '1': compactIdentity });
+  });
+
+  test('should compact identities on a thread without comments', async () => {
+    const fullIdentity = {
+      displayName: 'Maksim Strygin',
+      url: 'http://server/_apis/Identities/2268fe44-47a4-414f-985b-ad5e5539fb45',
+      _links: {
+        avatar: {
+          href: 'http://server/_apis/GraphProfile/MemberAvatars/win.abc',
+        },
+      },
+      id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+      uniqueName: 'RUSSIA\\StryginM',
+      imageUrl: 'http://server/_api/_common/identityImage?id=2268fe44',
+      descriptor: 'win.abc',
+    };
+
+    const mockCommentThreads: GitPullRequestCommentThread[] = [
+      {
+        id: 1,
+        status: 3, // Closed
+        comments: undefined,
+        identities: { '1': fullIdentity },
+      },
+    ];
+
+    const mockGitApi = {
+      getThreads: jest.fn().mockResolvedValue(mockCommentThreads),
+      getPullRequestThread: jest.fn(),
+    };
+
+    const mockConnection: any = {
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    };
+
+    const result = await getPullRequestComments(
+      mockConnection as WebApi,
+      'test-project',
+      'test-repo',
+      123,
+      {
+        projectId: 'test-project',
+        repositoryId: 'test-repo',
+        pullRequestId: 123,
+      },
+    );
+
+    expect(result[0].comments).toBeUndefined();
+    expect(result[0].identities).toEqual({
+      '1': {
+        id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+        displayName: 'Maksim Strygin',
+        uniqueName: 'RUSSIA\\StryginM',
+      },
+    });
+  });
+
   test('should handle comments without thread context', async () => {
     // Mock data for a comment thread without thread context
     const mockCommentThreads: GitPullRequestCommentThread[] = [

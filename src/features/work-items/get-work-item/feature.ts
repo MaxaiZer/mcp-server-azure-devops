@@ -9,6 +9,7 @@ import {
   AzureDevOpsError,
 } from '../../../shared/errors';
 import { WorkItem } from '../types';
+import { compactWorkItemFields } from '../../../shared/utils/compact-identity';
 
 const workItemTypeFieldsCache: Record<
   string,
@@ -62,7 +63,7 @@ export async function getWorkItem(
 
     if (!projectName || !workItemType) {
       // If we can't determine the project or type, return the original work item
-      return workItem;
+      return compactWorkItemFields(workItem);
     }
 
     // Get all possible fields for this work item type
@@ -99,7 +100,7 @@ export async function getWorkItem(
       }
     }
 
-    return enhancedWorkItem;
+    return compactWorkItemFields(enhancedWorkItem);
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;
