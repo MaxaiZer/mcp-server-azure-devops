@@ -142,7 +142,35 @@ describe('Pull Requests Request Handlers', () => {
         'test-repo',
         expect.objectContaining({
           status: 'active',
+          includeDetails: false,
         }),
+      );
+    });
+
+    it('should pass includeDetails to list_pull_requests when set', async () => {
+      (listPullRequests as jest.Mock).mockResolvedValue({
+        count: 0,
+        value: [],
+        hasMoreResults: false,
+      });
+
+      const request = {
+        params: {
+          name: 'list_pull_requests',
+          arguments: {
+            repositoryId: 'test-repo',
+            includeDetails: true,
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      await handlePullRequestsRequest(mockConnection, request);
+      expect(listPullRequests).toHaveBeenCalledWith(
+        mockConnection,
+        expect.any(String),
+        'test-repo',
+        expect.objectContaining({ includeDetails: true }),
       );
     });
 
@@ -169,6 +197,33 @@ describe('Pull Requests Request Handlers', () => {
       expect(getPullRequest).toHaveBeenCalledWith(mockConnection, {
         projectId: 'test-project',
         pullRequestId: 42,
+        includeDetails: false,
+      });
+    });
+
+    it('should pass includeDetails to get_pull_request when set', async () => {
+      (getPullRequest as jest.Mock).mockResolvedValue({
+        id: 42,
+        title: 'PR 42',
+      });
+
+      const request = {
+        params: {
+          name: 'get_pull_request',
+          arguments: {
+            projectId: 'test-project',
+            pullRequestId: 42,
+            includeDetails: true,
+          },
+        },
+        method: 'tools/call',
+      } as CallToolRequest;
+
+      await handlePullRequestsRequest(mockConnection, request);
+      expect(getPullRequest).toHaveBeenCalledWith(mockConnection, {
+        projectId: 'test-project',
+        pullRequestId: 42,
+        includeDetails: true,
       });
     });
 

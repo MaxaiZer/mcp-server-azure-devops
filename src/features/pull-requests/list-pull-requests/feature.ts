@@ -2,10 +2,11 @@ import { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsError } from '../../../shared/errors';
 import { ListPullRequestsOptions } from '../types';
 import {
+  CompactPullRequest,
   projectPullRequest,
-  ProjectedPullRequest,
-} from '../../../shared/utils/compact-identity';
+} from '../../../shared/utils/compact-pull-request';
 import {
+  GitPullRequest,
   GitPullRequestSearchCriteria,
   PullRequestStatus,
 } from 'azure-devops-node-api/interfaces/GitInterfaces';
@@ -26,7 +27,7 @@ export async function listPullRequests(
   options: ListPullRequestsOptions,
 ): Promise<{
   count: number;
-  value: ProjectedPullRequest[];
+  value: Array<CompactPullRequest | GitPullRequest>;
   hasMoreResults: boolean;
   warning?: string;
 }> {
@@ -101,7 +102,9 @@ export async function listPullRequests(
 
     return {
       count,
-      value: results.map(projectPullRequest),
+      value: results.map((pr) =>
+        projectPullRequest(pr, options.includeDetails === true),
+      ),
       hasMoreResults,
       warning,
     };

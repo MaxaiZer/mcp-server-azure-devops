@@ -60,6 +60,15 @@ export interface CreatePullRequestOptions {
 }
 
 /**
+ * Options for getting a pull request
+ */
+export interface GetPullRequestOptions {
+  projectId: string;
+  pullRequestId: number;
+  includeDetails?: boolean;
+}
+
+/**
  * Options for listing pull requests
  */
 export interface ListPullRequestsOptions {
@@ -72,6 +81,7 @@ export interface ListPullRequestsOptions {
   targetRefName?: string;
   top?: number;
   skip?: number;
+  includeDetails?: boolean;
 }
 
 /**

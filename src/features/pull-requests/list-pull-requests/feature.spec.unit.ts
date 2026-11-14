@@ -1,6 +1,10 @@
 import { WebApi } from 'azure-devops-node-api';
 import { listPullRequests } from './feature';
-import { PullRequestStatus } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import {
+  GitPullRequest,
+  PullRequestStatus,
+} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { CompactPullRequest } from '../../../shared/utils/compact-pull-request';
 
 describe('listPullRequests', () => {
   afterEach(() => {
@@ -67,7 +71,7 @@ describe('listPullRequests', () => {
     );
   });
 
-  test('should compact identity fields on every listed pull request', async () => {
+  test('should compact every listed pull request by default', async () => {
     const fullIdentity = {
       displayName: 'Maksim Strygin',
       url: 'http://server/_apis/Identities/2268fe44-47a4-414f-985b-ad5e5539fb45',
@@ -82,12 +86,26 @@ describe('listPullRequests', () => {
       descriptor: 'win.abc',
     };
 
-    const mockPullRequests = [
+    const mockPullRequests: GitPullRequest[] = [
       {
         pullRequestId: 1,
         title: 'Test PR 1',
+        url: 'http://server/_apis/git/repositories/Repo1/pullRequests/1',
+        _links: { web: { href: 'http://server/_git/Repo1/pullrequest/1' } },
+        repository: {
+          id: 'repo-1',
+          name: 'Repo1',
+          url: 'http://server/_apis/git/repositories/Repo1',
+          project: { id: 'project-1', name: 'DefaultProject' },
+        },
         createdBy: fullIdentity,
         reviewers: [{ ...fullIdentity, vote: 10, reviewerUrl: 'http://x' }],
+      },
+      {
+        pullRequestId: 2,
+        title: 'Test PR 2',
+        url: 'http://server/_apis/git/repositories/Repo1/pullRequests/2',
+        createdBy: fullIdentity,
       },
     ];
 
@@ -106,6 +124,13 @@ describe('listPullRequests', () => {
       { projectId: 'test-project', repositoryId: 'test-repo', top: 10 },
     );
 
+    expect(result.value[0]).not.toHaveProperty('url');
+    expect(result.value[0]).not.toHaveProperty('_links');
+    expect(result.value[0].repository).toEqual({
+      id: 'repo-1',
+      name: 'Repo1',
+      project: { id: 'project-1', name: 'DefaultProject' },
+    });
     expect(result.value[0].createdBy).toEqual({
       id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
       displayName: 'Maksim Strygin',
@@ -119,6 +144,64 @@ describe('listPullRequests', () => {
         vote: 10,
       },
     ]);
+    expect((result.value[0] as CompactPullRequest).webUrl).toBe(
+      'http://server/_git/Repo1/pullrequest/1',
+    );
+    expect(result.value[1]).toEqual({
+      pullRequestId: 2,
+      title: 'Test PR 2',
+      createdBy: {
+        id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
+        displayName: 'Maksim Strygin',
+        uniqueName: 'RUSSIA\\StryginM',
+      },
+    });
+  });
+
+  test('should return raw pull requests on every element when includeDetails is true', async () => {
+    const mockPullRequests: GitPullRequest[] = [
+      {
+        pullRequestId: 1,
+        title: 'Test PR 1',
+        url: 'http://server/_apis/git/repositories/Repo1/pullRequests/1',
+        _links: { web: { href: 'http://server/_git/Repo1/pullrequest/1' } },
+        repository: {
+          id: 'repo-1',
+          name: 'Repo1',
+          url: 'http://server/_apis/git/repositories/Repo1',
+          project: { id: 'project-1', name: 'DefaultProject' },
+        },
+        commits: [{ commitId: 'aaa111' }],
+      },
+    ];
+
+    const mockGitApi = {
+      getPullRequests: jest.fn().mockResolvedValue(mockPullRequests),
+    };
+
+    const mockConnection: any = {
+      getGitApi: jest.fn().mockResolvedValue(mockGitApi),
+    };
+
+    const result = await listPullRequests(
+      mockConnection as WebApi,
+      'test-project',
+      'test-repo',
+      {
+        projectId: 'test-project',
+        repositoryId: 'test-repo',
+        top: 10,
+        includeDetails: true,
+      },
+    );
+
+    const raw = result.value[0] as GitPullRequest;
+    expect(raw).toBe(mockPullRequests[0]);
+    expect(raw.url).toBe(
+      'http://server/_apis/git/repositories/Repo1/pullRequests/1',
+    );
+    expect(raw.repository).toHaveProperty('url');
+    expect(raw.commits).toEqual([{ commitId: 'aaa111' }]);
   });
 
   test('should return empty array when no pull requests exist', async () => {

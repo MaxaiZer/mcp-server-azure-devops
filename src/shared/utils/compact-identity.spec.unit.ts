@@ -2,7 +2,6 @@ import {
   toCompactIdentity,
   isIdentityLike,
   toCompactReviewer,
-  projectPullRequest,
   compactWorkItemFields,
 } from './compact-identity';
 
@@ -134,60 +133,6 @@ describe('toCompactReviewer', () => {
       id: 'abc',
       vote: 10,
     });
-  });
-});
-
-describe('projectPullRequest', () => {
-  test('compacts createdBy, closedBy and reviewers, keeps the rest', () => {
-    const pr = {
-      pullRequestId: 1,
-      title: 'PR 1',
-      createdBy: fullIdentity,
-      closedBy: fullIdentity,
-      reviewers: [
-        {
-          ...fullIdentity,
-          vote: 10,
-          isRequired: true,
-          reviewerUrl: 'http://x',
-        },
-      ],
-      lastMergeCommit: {
-        author: { name: 'Maksim Strygin', email: 'maksim@example.com' },
-      },
-    };
-
-    expect(projectPullRequest(pr)).toEqual({
-      pullRequestId: 1,
-      title: 'PR 1',
-      createdBy: {
-        id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
-        displayName: 'Maksim Strygin',
-        uniqueName: 'RUSSIA\\StryginM',
-      },
-      closedBy: {
-        id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
-        displayName: 'Maksim Strygin',
-        uniqueName: 'RUSSIA\\StryginM',
-      },
-      reviewers: [
-        {
-          id: '2268fe44-47a4-414f-985b-ad5e5539fb45',
-          displayName: 'Maksim Strygin',
-          uniqueName: 'RUSSIA\\StryginM',
-          vote: 10,
-          isRequired: true,
-        },
-      ],
-      lastMergeCommit: {
-        author: { name: 'Maksim Strygin', email: 'maksim@example.com' },
-      },
-    });
-  });
-
-  test('does not add reviewers key when the PR has none', () => {
-    const result = projectPullRequest({ pullRequestId: 2 } as never);
-    expect(result).not.toHaveProperty('reviewers');
   });
 });
 

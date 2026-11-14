@@ -57,6 +57,13 @@ export const GetPullRequestSchema = z.object({
     .optional()
     .describe(`The ID or name of the organization (Default: ${defaultOrg})`),
   pullRequestId: z.number().describe('The ID of the pull request'),
+  includeDetails: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'Return the full raw Azure DevOps pull request payload (url, _links, full repository object, completionOptions, full identity objects, commits when present). By default a compact projection is returned.',
+    ),
 });
 
 /**
@@ -94,6 +101,13 @@ export const ListPullRequestsSchema = z.object({
     .number()
     .optional()
     .describe('Number of pull requests to skip for pagination'),
+  includeDetails: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'Return full raw Azure DevOps pull request payloads (url, _links, full repository objects, completionOptions, full identity objects, commits when present) for every item. By default compact projections are returned.',
+    ),
 });
 
 /**

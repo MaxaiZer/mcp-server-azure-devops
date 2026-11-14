@@ -1,7 +1,4 @@
-import {
-  GitPullRequest,
-  IdentityRefWithVote,
-} from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { IdentityRefWithVote } from 'azure-devops-node-api/interfaces/GitInterfaces';
 
 /**
  * Reduced identity shape: only the fields consumers need
@@ -26,15 +23,6 @@ export type CompactReviewer = {
   isReapprove?: boolean;
   isContainer?: boolean;
   votedFor?: CompactReviewer[];
-};
-
-export type ProjectedPullRequest = Omit<
-  GitPullRequest,
-  'createdBy' | 'closedBy' | 'reviewers'
-> & {
-  createdBy?: CompactIdentity;
-  closedBy?: CompactIdentity;
-  reviewers?: CompactReviewer[];
 };
 
 function pickString(
@@ -117,26 +105,9 @@ export function toCompactReviewer(
     ...(typeof reviewer.isContainer === 'boolean'
       ? { isContainer: reviewer.isContainer }
       : {}),
-    ...(reviewer.votedFor
+    ...(reviewer.votedFor && reviewer.votedFor.length > 0
       ? { votedFor: reviewer.votedFor.map(toCompactReviewer) }
       : {}),
-  };
-}
-
-/**
- * Project a pull request to the compact shape: createdBy, closedBy and
- * reviewers lose url/_links/imageUrl/descriptor/reviewerUrl, everything
- * else is preserved as-is.
- */
-export function projectPullRequest(pr: GitPullRequest): ProjectedPullRequest {
-  const createdBy = toCompactIdentity(pr.createdBy);
-  const closedBy = toCompactIdentity(pr.closedBy);
-
-  return {
-    ...pr,
-    ...(createdBy ? { createdBy } : {}),
-    ...(closedBy ? { closedBy } : {}),
-    ...(pr.reviewers ? { reviewers: pr.reviewers.map(toCompactReviewer) } : {}),
   };
 }
 

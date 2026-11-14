@@ -91,6 +91,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
       const result = await getPullRequest(connection, {
         projectId: params.projectId,
         pullRequestId: params.pullRequestId,
+        includeDetails: params.includeDetails,
       });
       return {
         content: [{ type: 'text', text: JSON.stringify(result) }],
@@ -112,6 +113,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
           targetRefName: params.targetRefName,
           top: params.top,
           skip: params.skip,
+          includeDetails: params.includeDetails,
         },
       );
       return {

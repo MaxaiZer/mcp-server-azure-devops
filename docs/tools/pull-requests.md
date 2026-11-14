@@ -158,28 +158,52 @@ The `get_pull_request` tool retrieves a pull request by its numeric ID. This is 
 ```json
 {
   "projectId": "MyProject", // Required: The ID or name of the project
-  "pullRequestId": 42 // Required: The ID of the pull request
+  "pullRequestId": 42, // Required: The ID of the pull request
+  "includeDetails": false // Optional: Return the full raw Azure DevOps payload (default: false)
 }
 ```
 
-| Parameter       | Type   | Required | Description                                 |
-| --------------- | ------ | -------- | ------------------------------------------- |
-| `projectId`     | string | Yes      | The ID or name of the project               |
-| `pullRequestId` | number | Yes      | The ID of the pull request to retrieve      |
+| Parameter        | Type    | Required | Description                                                                                              |
+| ---------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| `projectId`      | string  | Yes      | The ID or name of the project                                                                             |
+| `pullRequestId`  | number  | Yes      | The ID of the pull request to retrieve                                                                    |
+| `includeDetails` | boolean | No       | Return the full raw Azure DevOps payload (`url`, `_links`, full repository object, completionOptions, full identity objects, commits when present). By default a compact projection is returned (default: false) |
 
 ### Response
 
-Returns a `PullRequest` object.
+By default the tool returns a compact projection of the pull request:
+
+- `pullRequestId`, `codeReviewId`, `title`, `description`, `status`, `isDraft`
+- `sourceRefName`, `targetRefName`, `mergeStatus`, `mergeFailureMessage`, `mergeFailureType`
+- `creationDate`, `closedDate`
+- `createdBy`, `closedBy`, `autoCompleteSetBy`: compact identities (`id`, `displayName`, `uniqueName`)
+- `repository`: compact (`id`, `name`, `project: { id, name }`)
+- `reviewers`: compact reviewers with `vote` and nested `votedFor`
+- `lastMergeCommit`, `lastMergeSourceCommit`, `lastMergeTargetCommit`: `{ commitId }`
+- `workItemRefs`: `[{ id }]`
+- `labels`: `[{ id, name, active }]`
+- `completionOptions`, `mergeOptions`, `forkSource`: compact
+- `webUrl`: the UI link to the pull request (from `_links.web.href`)
+
+The fields `url`, `_links`, `remoteUrl`, `commits`, `mergeId`, `completionQueueTime`, `hasMultipleMergeBases` and the full repository/identity objects are omitted by default. Set `includeDetails: true` to return the full raw Azure DevOps `GitPullRequest` payload unchanged.
 
 ### Example Usage
 
 ```typescript
+// Compact projection (default)
 const pr = await mcpClient.callTool('get_pull_request', {
   projectId: 'MyProject',
   pullRequestId: 42,
 });
 
-console.log(`PR #${pr.pullRequestId}: ${pr.title}`);
+console.log(`PR #${pr.pullRequestId}: ${pr.title} (${pr.webUrl})`);
+
+// Full raw payload
+const rawPR = await mcpClient.callTool('get_pull_request', {
+  projectId: 'MyProject',
+  pullRequestId: 42,
+  includeDetails: true,
+});
 ```
 
 ## list_pull_requests
@@ -202,7 +226,8 @@ The `list_pull_requests` tool retrieves pull requests from a specified Azure Dev
   "sourceRefName": "refs/heads/feature-branch", // Optional: Filter by source branch name
   "targetRefName": "refs/heads/main", // Optional: Filter by target branch name
   "top": 10, // Optional: Maximum number of pull requests to return (default: 10)
-  "skip": 0 // Optional: Number of pull requests to skip for pagination
+  "skip": 0, // Optional: Number of pull requests to skip for pagination
+  "includeDetails": false // Optional: Return full raw Azure DevOps payloads (default: false)
 }
 ```
 
@@ -215,27 +240,32 @@ The `list_pull_requests` tool retrieves pull requests from a specified Azure Dev
 | `reviewerId`    | string | No       | Filter pull requests by reviewer ID (must be a UUID)                                |
 | `sourceRefName` | string | No       | Filter pull requests by source branch name                                          |
 | `targetRefName` | string | No       | Filter pull requests by target branch name                                          |
-| `top`           | number | No       | Maximum number of pull requests to return                                           |
+| `top`            | number  | No       | Maximum number of pull requests to return                                           |
+| `skip`           | number  | No       | Number of pull requests to skip for pagination                                      |
+| `includeDetails` | boolean | No       | Return full raw Azure DevOps pull request payloads for every item. By default compact projections are returned (default: false) |
 
 ### Response
 
 The tool returns an object containing:
 
 - `count`: The number of pull requests returned
-- `value`: An array of `PullRequest` objects
+- `value`: An array of compact pull request projections (full raw `GitPullRequest` objects when `includeDetails: true`)
 - `hasMoreResults`: A boolean indicating if there are more results available
 - `warning`: A message with pagination guidance (only present when hasMoreResults is true)
 
-Each pull request in the `value` array contains:
+Each pull request in the `value` array is a compact projection by default:
 
 - `pullRequestId`: The unique identifier of the pull request
 - `title`: The title of the pull request
 - `status`: The status of the pull request (active, abandoned, completed)
-- `createdBy`: Information about the user who created the pull request
+- `createdBy`: The compact identity of the user who created the pull request (`id`, `displayName`, `uniqueName`)
+- `repository`: The compact repository (`id`, `name`, `project: { id, name }`)
+- `reviewers`: The compact reviewers with their `vote`
 - `creationDate`: The date and time when the pull request was created
 - `sourceRefName`: The source branch name
 - `targetRefName`: The target branch name
-- And various other fields and references
+- `webUrl`: The UI link to the pull request
+- `lastMergeCommit`, `workItemRefs`, `labels`, `completionOptions`, `mergeOptions` and other compact fields when present
 
 Example response:
 
@@ -266,7 +296,7 @@ Example response:
       "targetRefName": "refs/heads/main",
       "mergeStatus": 3,
       "isDraft": false,
-      "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo/pullRequests/42"
+      "webUrl": "https://dev.azure.com/organization/MyProject/_git/MyRepo/pullrequest/42"
     },
     {
       "repository": {
@@ -291,7 +321,7 @@ Example response:
       "targetRefName": "refs/heads/main",
       "mergeStatus": 3,
       "isDraft": false,
-      "url": "https://dev.azure.com/organization/MyProject/_apis/git/repositories/MyRepo/pullRequests/43"
+      "webUrl": "https://dev.azure.com/organization/MyProject/_git/MyRepo/pullrequest/43"
     }
   ],
   "hasMoreResults": false

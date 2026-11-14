@@ -26,12 +26,13 @@ export const pullRequestsTools: ToolDefinition[] = [
   {
     name: 'get_pull_request',
     description:
-      'Get a pull request by ID (no repositoryId required; best for Azure DevOps Server where PR IDs are project-scoped)',
+      'Get a pull request by ID (no repositoryId required; best for Azure DevOps Server where PR IDs are project-scoped). Returns a compact projection by default; set includeDetails=true for the full raw Azure DevOps payload.',
     inputSchema: toJsonSchema(GetPullRequestSchema),
   },
   {
     name: 'list_pull_requests',
-    description: 'List pull requests in a repository',
+    description:
+      'List pull requests in a repository. Returns compact projections by default; set includeDetails=true for full raw Azure DevOps payloads.',
     inputSchema: toJsonSchema(ListPullRequestsSchema),
   },
   {

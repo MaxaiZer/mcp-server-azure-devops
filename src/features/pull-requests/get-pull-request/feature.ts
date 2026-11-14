@@ -1,20 +1,19 @@
 import { WebApi } from 'azure-devops-node-api';
+import { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
 import {
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
+import { GetPullRequestOptions } from '../types';
 import {
+  CompactPullRequest,
   projectPullRequest,
-  ProjectedPullRequest,
-} from '../../../shared/utils/compact-identity';
+} from '../../../shared/utils/compact-pull-request';
 
 export async function getPullRequest(
   connection: WebApi,
-  options: {
-    projectId: string;
-    pullRequestId: number;
-  },
-): Promise<ProjectedPullRequest> {
+  options: GetPullRequestOptions,
+): Promise<CompactPullRequest | GitPullRequest> {
   try {
     const gitApi = await connection.getGitApi();
     const project = options.projectId;
@@ -26,7 +25,7 @@ export async function getPullRequest(
       );
     }
 
-    return projectPullRequest(pr);
+    return projectPullRequest(pr, options.includeDetails === true);
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;
