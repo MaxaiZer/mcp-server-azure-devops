@@ -93,7 +93,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         args.expand,
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'list_work_items': {
@@ -108,7 +108,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         fields: args.fields,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'create_work_item': {
@@ -132,7 +132,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         },
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'update_work_item': {
@@ -153,7 +153,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         additionalFields: args.additionalFields,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'manage_work_item_link': {
@@ -171,7 +171,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         },
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'create_work_item_attachment': {
@@ -189,7 +189,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         },
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_work_item_attachment': {
@@ -212,15 +212,11 @@ export const handleWorkItemsRequest: RequestHandler = async (
               },
               {
                 type: 'text',
-                text: JSON.stringify(
-                  {
-                    fileName: result.fileName,
-                    mimeType: result.mimeType,
-                    size: result.size,
-                  },
-                  null,
-                  2,
-                ),
+                text: JSON.stringify({
+                  fileName: result.fileName,
+                  mimeType: result.mimeType,
+                  size: result.size,
+                }),
               },
             ],
           };
@@ -233,15 +229,11 @@ export const handleWorkItemsRequest: RequestHandler = async (
               { type: 'text', text: result.text },
               {
                 type: 'text',
-                text: JSON.stringify(
-                  {
-                    fileName: result.fileName,
-                    mimeType: result.mimeType,
-                    size: result.size,
-                  },
-                  null,
-                  2,
-                ),
+                text: JSON.stringify({
+                  fileName: result.fileName,
+                  mimeType: result.mimeType,
+                  size: result.size,
+                }),
               },
             ],
           };
@@ -262,7 +254,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         default:
           // Saved to disk
           return {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(result) }],
           };
       }
     }
@@ -274,7 +266,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         workItemId: args.workItemId,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'delete_work_item_attachment': {
@@ -286,7 +278,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         attachmentId: args.attachmentId,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_work_item_comments': {
@@ -301,7 +293,7 @@ export const handleWorkItemsRequest: RequestHandler = async (
         order: args.order,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     default:

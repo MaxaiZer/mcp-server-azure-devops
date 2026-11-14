@@ -45,21 +45,21 @@ export const handleSearchRequest: RequestHandler = async (
       const args = SearchCodeSchema.parse(request.params.arguments);
       const result = await searchCode(connection, args);
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'search_wiki': {
       const args = SearchWikiSchema.parse(request.params.arguments);
       const result = await searchWiki(connection, args);
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'search_work_items': {
       const args = SearchWorkItemsSchema.parse(request.params.arguments);
       const result = await searchWorkItems(connection, args);
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     default:

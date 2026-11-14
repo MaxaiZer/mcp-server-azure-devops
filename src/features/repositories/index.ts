@@ -83,7 +83,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         args.repositoryId,
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_repository_details': {
@@ -97,7 +97,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         branchName: args.branchName,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'list_repositories': {
@@ -107,7 +107,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_file_content': {
@@ -137,7 +137,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         args.endLine,
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_all_repositories_tree': {
@@ -192,26 +192,22 @@ export const handleRepositoriesRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
 
-      let output = JSON.stringify(result, null, 2);
+      let output = JSON.stringify(result);
       if (output.length > MAX_TOTAL_OUTPUT_CHARS) {
-        // Try compact JSON first
-        output = JSON.stringify(result);
-        if (output.length > MAX_TOTAL_OUTPUT_CHARS) {
-          // Slice tree proportionally to fit budget
-          const ratio = MAX_TOTAL_OUTPUT_CHARS / output.length;
-          const maxItems = Math.max(
-            1,
-            Math.floor(result.tree.length * ratio * 0.8),
-          );
-          const slicedResult = {
-            ...result,
-            tree: result.tree.slice(0, maxItems),
-            truncated: true,
-            totalItems: result.totalItems || result.tree.length,
-            truncationNote: `Output truncated to fit within ${MAX_TOTAL_OUTPUT_CHARS} character limit. Use the "path" parameter to explore specific subdirectories, or set a lower "depth".`,
-          };
-          output = JSON.stringify(slicedResult);
-        }
+        // Slice tree proportionally to fit budget
+        const ratio = MAX_TOTAL_OUTPUT_CHARS / output.length;
+        const maxItems = Math.max(
+          1,
+          Math.floor(result.tree.length * ratio * 0.8),
+        );
+        const slicedResult = {
+          ...result,
+          tree: result.tree.slice(0, maxItems),
+          truncated: true,
+          totalItems: result.totalItems || result.tree.length,
+          truncationNote: `Output truncated to fit within ${MAX_TOTAL_OUTPUT_CHARS} character limit. Use the "path" parameter to explore specific subdirectories, or set a lower "depth".`,
+        };
+        output = JSON.stringify(slicedResult);
       }
 
       return {
@@ -246,7 +242,7 @@ export const handleRepositoriesRequest: RequestHandler = async (
         includeDiffs: args.includeDiffs,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     default:

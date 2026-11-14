@@ -53,7 +53,7 @@ export const handleOrganizationsRequest: RequestHandler = async (
 
       const result = await listOrganizations(config);
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     default:

@@ -220,7 +220,7 @@ describe('Work Items Request Handlers', () => {
         undefined,
       );
       expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify({ id: 123 }, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify({ id: 123 }) }],
       });
     });
 
@@ -239,7 +239,7 @@ describe('Work Items Request Handlers', () => {
         content: [
           {
             type: 'text',
-            text: JSON.stringify([{ id: 123 }, { id: 456 }], null, 2),
+            text: JSON.stringify([{ id: 123 }, { id: 456 }]),
           },
         ],
       });
@@ -261,7 +261,7 @@ describe('Work Items Request Handlers', () => {
       });
       expect(workItemModule.createWorkItem).toHaveBeenCalled();
       expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify({ id: 789 }, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify({ id: 789 }) }],
       });
     });
 
@@ -279,7 +279,7 @@ describe('Work Items Request Handlers', () => {
       });
       expect(workItemModule.updateWorkItem).toHaveBeenCalled();
       expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify({ id: 123 }, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify({ id: 123 }) }],
       });
     });
 
@@ -303,7 +303,7 @@ describe('Work Items Request Handlers', () => {
       });
       expect(workItemModule.manageWorkItemLink).toHaveBeenCalled();
       expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify({ id: 123 }, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify({ id: 123 }) }],
       });
     });
 
@@ -326,7 +326,7 @@ describe('Work Items Request Handlers', () => {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({ id: 123, relations: [] }, null, 2),
+            text: JSON.stringify({ id: 123, relations: [] }),
           },
         ],
       });
@@ -351,16 +351,12 @@ describe('Work Items Request Handlers', () => {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                kind: 'file',
-                filePath: '/path/to/output.txt',
-                fileName: 'output.txt',
-                size: 1024,
-              },
-              null,
-              2,
-            ),
+            text: JSON.stringify({
+              kind: 'file',
+              filePath: '/path/to/output.txt',
+              fileName: 'output.txt',
+              size: 1024,
+            }),
           },
         ],
       });
@@ -391,15 +387,11 @@ describe('Work Items Request Handlers', () => {
           },
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                fileName: 'screenshot.png',
-                mimeType: 'image/png',
-                size: 9,
-              },
-              null,
-              2,
-            ),
+            text: JSON.stringify({
+              fileName: 'screenshot.png',
+              mimeType: 'image/png',
+              size: 9,
+            }),
           },
         ],
       });
@@ -426,15 +418,11 @@ describe('Work Items Request Handlers', () => {
           { type: 'text', text: '<svg></svg>' },
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                fileName: 'diagram.svg',
-                mimeType: 'image/svg+xml',
-                size: 11,
-              },
-              null,
-              2,
-            ),
+            text: JSON.stringify({
+              fileName: 'diagram.svg',
+              mimeType: 'image/svg+xml',
+              size: 11,
+            }),
           },
         ],
       });
@@ -472,17 +460,13 @@ describe('Work Items Request Handlers', () => {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              [
-                {
-                  attachmentId: 'abc-123-def-456',
-                  fileName: 'screenshot.png',
-                  url: attachmentUrl,
-                },
-              ],
-              null,
-              2,
-            ),
+            text: JSON.stringify([
+              {
+                attachmentId: 'abc-123-def-456',
+                fileName: 'screenshot.png',
+                url: attachmentUrl,
+              },
+            ]),
           },
         ],
       });
@@ -504,7 +488,7 @@ describe('Work Items Request Handlers', () => {
       });
       expect(workItemModule.deleteWorkItemAttachment).toHaveBeenCalled();
       expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify({ id: 123 }, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify({ id: 123 }) }],
       });
     });
 
@@ -556,7 +540,7 @@ describe('Work Items Request Handlers', () => {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({ comments: [{ id: 1 }] }, null, 2),
+            text: JSON.stringify({ comments: [{ id: 1 }] }),
           },
         ],
       });

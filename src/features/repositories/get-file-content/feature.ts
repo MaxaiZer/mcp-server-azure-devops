@@ -159,7 +159,7 @@ export async function getFileContent(
     if (isDirectory) {
       // For directories, return a formatted list of the items
       return {
-        content: JSON.stringify(items, null, 2),
+        content: JSON.stringify(items),
         isDirectory: true,
       };
     } else {

@@ -72,7 +72,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_pipeline': {
@@ -82,7 +82,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'list_pipeline_runs': {
@@ -92,7 +92,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_pipeline_run': {
@@ -102,7 +102,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'download_pipeline_artifact': {
@@ -114,7 +114,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'pipeline_timeline': {
@@ -124,7 +124,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_pipeline_log': {
@@ -133,8 +133,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         ...args,
         projectId: args.projectId ?? defaultProject,
       });
-      const text =
-        typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+      const text = typeof result === 'string' ? result : JSON.stringify(result);
       return {
         content: [{ type: 'text', text }],
       };
@@ -146,7 +145,7 @@ export const handlePipelinesRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     default:

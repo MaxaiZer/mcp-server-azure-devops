@@ -56,7 +56,7 @@ export const handleProjectsRequest: RequestHandler = async (
         continuationToken: args.continuationToken,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_project': {
@@ -66,7 +66,7 @@ export const handleProjectsRequest: RequestHandler = async (
         args.projectId ?? defaultProject,
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_project_details': {
@@ -80,7 +80,7 @@ export const handleProjectsRequest: RequestHandler = async (
         expandTeamIdentity: args.expandTeamIdentity,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     default:

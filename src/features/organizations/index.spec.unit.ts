@@ -58,7 +58,7 @@ describe('Organizations Request Handlers', () => {
       );
 
       expect(response).toEqual({
-        content: [{ type: 'text', text: JSON.stringify(mockOrgs, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(mockOrgs) }],
       });
 
       expect(listOrganizationsFeature.listOrganizations).toHaveBeenCalledWith({

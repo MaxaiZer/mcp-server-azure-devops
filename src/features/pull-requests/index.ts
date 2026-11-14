@@ -83,7 +83,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         args,
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_pull_request': {
@@ -93,7 +93,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         pullRequestId: params.pullRequestId,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'list_pull_requests': {
@@ -115,7 +115,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         },
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_pull_request_comments': {
@@ -137,7 +137,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         },
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'add_pull_request_comment': {
@@ -163,7 +163,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         },
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'update_pull_request': {
@@ -174,7 +174,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
       };
       const result = await updatePullRequest(fixedParams);
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'update_pull_request_comment': {
@@ -191,7 +191,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         params.content,
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_pull_request_changes': {
@@ -205,7 +205,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         includeDiffs: params.includeDiffs,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_pull_request_checks': {
@@ -216,7 +216,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         pullRequestId: params.pullRequestId,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'update_pull_request_thread_status': {
@@ -232,7 +232,7 @@ export const handlePullRequestsRequest: RequestHandler = async (
         params,
       );
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     default:

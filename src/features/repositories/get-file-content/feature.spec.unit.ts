@@ -209,7 +209,7 @@ describe('getFileContent', () => {
     expect(mockGitApi.getItemContent).not.toHaveBeenCalled();
 
     expect(result).toEqual({
-      content: JSON.stringify(mockDirectoryItems, null, 2),
+      content: JSON.stringify(mockDirectoryItems),
       isDirectory: true,
     });
   });
@@ -260,7 +260,7 @@ describe('getFileContent', () => {
     );
 
     expect(result.isDirectory).toBe(true);
-    expect(result.content).toBe(JSON.stringify(mockDirectoryItems, null, 2));
+    expect(result.content).toBe(JSON.stringify(mockDirectoryItems));
   });
   describe('trailing newline', () => {
     const content = 'a\nb\nc\n';

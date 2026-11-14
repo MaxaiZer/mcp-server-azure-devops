@@ -63,7 +63,7 @@ export const handleWikisRequest: RequestHandler = async (
         projectId: args.projectId ?? defaultProject,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'get_wiki_page': {
@@ -89,7 +89,7 @@ export const handleWikisRequest: RequestHandler = async (
         mappedPath: args.mappedPath ?? undefined,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'update_wiki_page': {
@@ -103,7 +103,7 @@ export const handleWikisRequest: RequestHandler = async (
         comment: args.comment,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'list_wiki_pages': {
@@ -114,7 +114,7 @@ export const handleWikisRequest: RequestHandler = async (
         wikiId: args.wikiId,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     case 'create_wiki_page': {
@@ -128,7 +128,7 @@ export const handleWikisRequest: RequestHandler = async (
         comment: args.comment,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     default:

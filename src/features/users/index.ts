@@ -40,7 +40,7 @@ export const handleUsersRequest: RequestHandler = async (
     case 'get_me': {
       const result = await getMe(connection);
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(result) }],
       };
     }
     default:
