@@ -55,13 +55,35 @@ export interface ListPipelineRunsOptions {
   createdFrom?: string;
   createdTo?: string;
   orderBy?: 'createdDate desc' | 'createdDate asc';
+  includeDetails?: boolean;
+}
+
+/**
+ * Compact projection of a pipeline run returned by default. The full run
+ * payload (including _links, url, resources, variables, finalYaml,
+ * templateParameters) is only returned with includeDetails=true.
+ */
+export interface ProjectedPipelineRun {
+  id?: number;
+  name?: string;
+  state?: string;
+  result?: string;
+  createdDate?: Date;
+  finishedDate?: Date;
+  pipeline?: {
+    id?: number | string;
+    name?: string;
+  };
+  commit?: string;
+  refName?: string;
+  webUrl?: string;
 }
 
 /**
  * Result of listing pipeline runs
  */
 export interface ListPipelineRunsResult {
-  runs: Run[];
+  runs: Array<ProjectedPipelineRun | Run>;
   continuationToken?: string;
   warnings?: string[];
 }
@@ -73,6 +95,7 @@ export interface GetPipelineRunOptions {
   projectId: string;
   runId: number;
   pipelineId?: number;
+  includeDetails?: boolean;
 }
 
 export interface PipelineArtifactItem {
@@ -99,6 +122,14 @@ export interface PipelineRunArtifact {
 export interface PipelineRunDetails extends Run {
   artifacts?: PipelineRunArtifact[];
 }
+
+export interface ProjectedPipelineRunDetails extends ProjectedPipelineRun {
+  artifacts?: PipelineRunArtifact[];
+}
+
+export type GetPipelineRunResult =
+  | PipelineRunDetails
+  | ProjectedPipelineRunDetails;
 
 export interface DownloadPipelineArtifactOptions {
   projectId: string;

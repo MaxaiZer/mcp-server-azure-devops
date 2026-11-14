@@ -1,15 +1,12 @@
 import { WebApi } from 'azure-devops-node-api';
-import {
-  RunResult,
-  RunState,
-  TypeInfo,
-} from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
+import { TypeInfo } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
   AzureDevOpsResourceNotFoundError,
 } from '../../../shared/errors';
 import { apiVersion, defaultProject } from '../../../utils/environment';
+import { normalizeRun, projectRun, resultName, stateName } from '../helpers';
 import { ListPipelineRunsOptions, ListPipelineRunsResult, Run } from '../types';
 
 const API_VERSION = apiVersion;
@@ -27,55 +24,14 @@ function normalizeBranch(branch?: string): string | undefined {
   return `refs/heads/${trimmed}`;
 }
 
-function enumName(value: unknown, enumValues: Record<string, number>): string | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  if (typeof value === 'number') {
-    const name = Object.keys(enumValues).find((key) => enumValues[key] === value);
-    return name ? name.charAt(0).toLowerCase() + name.slice(1) : String(value);
-  }
-
-  return String(value);
-}
-
-function stateName(value: Run['state']): string | null {
-  return enumName(value, RunState as unknown as Record<string, number>);
-}
-
-function resultName(value: Run['result']): string | null {
-  return enumName(value, RunResult as unknown as Record<string, number>);
-}
-
-/**
- * formatResponse converts state/result to numeric enum values; map them back
- * to the API string names ("completed", "succeeded") for consumers.
- */
-function normalizeRun(run: Run): Run {
-  const state = stateName(run.state);
-  const result = resultName(run.result);
-
-  if (state === null && result === null) {
-    return run;
-  }
-
-  return {
-    ...run,
-    // The SDK types declare numeric enums, but API payloads and this tool's
-    // contract use string names.
-    ...(state !== null ? { state: state as unknown as Run['state'] } : {}),
-    ...(result !== null ? { result: result as unknown as Run['result'] } : {}),
-  };
-}
-
 function runCreatedEpoch(run: Run): number | null {
   const value = run.createdDate;
   if (!value) {
     return null;
   }
 
-  const ms = value instanceof Date ? value.getTime() : Date.parse(String(value));
+  const ms =
+    value instanceof Date ? value.getTime() : Date.parse(String(value));
   return Number.isFinite(ms) ? ms : null;
 }
 
@@ -105,18 +61,26 @@ function enforceRunContract(
 ): { runs: Run[]; warnings: string[] } {
   const warnings: string[] = [];
   const branch = normalizeBranch(options.branch);
-  const createdFrom = options.createdFrom ? Date.parse(options.createdFrom) : null;
+  const createdFrom = options.createdFrom
+    ? Date.parse(options.createdFrom)
+    : null;
   const createdTo = options.createdTo ? Date.parse(options.createdTo) : null;
 
   let filtered = runs.filter((run) => {
     // formatResponse converts state/result to numeric enum values, but raw
     // payloads carry string names ("completed"/"succeeded"); compare
     // case-insensitively against both representations.
-    if (options.state && stateName(run.state)?.toLowerCase() !== options.state.toLowerCase()) {
+    if (
+      options.state &&
+      stateName(run.state)?.toLowerCase() !== options.state.toLowerCase()
+    ) {
       return false;
     }
 
-    if (options.result && resultName(run.result)?.toLowerCase() !== options.result.toLowerCase()) {
+    if (
+      options.result &&
+      resultName(run.result)?.toLowerCase() !== options.result.toLowerCase()
+    ) {
       return false;
     }
 
@@ -264,6 +228,10 @@ export async function listPipelineRuns(
 
     const { runs, warnings } = enforceRunContract(fetched, options, top);
 
+    const projectedRuns = runs.map((run) =>
+      projectRun(run, options.includeDetails === true),
+    );
+
     const continuationToken = extractContinuationToken(
       response.headers as Record<string, unknown>,
       response.result,
@@ -272,8 +240,8 @@ export async function listPipelineRuns(
     const extra = warnings.length > 0 ? { warnings } : {};
 
     return continuationToken
-      ? { runs, continuationToken, ...extra }
-      : { runs, ...extra };
+      ? { runs: projectedRuns, continuationToken, ...extra }
+      : { runs: projectedRuns, ...extra };
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;

@@ -153,10 +153,11 @@ Lists recent runs for a given pipeline with optional filtering by branch, state,
 | `createdFrom`       | string (ISO) | No       | Restrict runs created on or after this timestamp                            |
 | `createdTo`         | string (ISO) | No       | Restrict runs created on or before this timestamp                           |
 | `orderBy`           | string       | No       | Sort order for creation date (`createdDate desc` by default)                |
+| `includeDetails`    | boolean      | No       | Return the full raw run payload (default `false`)                          |
 
 ### Response
 
-Returns the runs plus a continuation token when more pages are available:
+Returns the runs plus a continuation token when more pages are available. By default each run is a compact projection with `id`, `name`, `state`, `result`, `createdDate`, `finishedDate`, `pipeline` (`id`, `name`), `commit` and `refName` (when the server reports repository data), and `webUrl` (the human-readable run URL). With `includeDetails: true` the full raw run payload is returned instead (`_links`, `url`, `resources`, `variables`, `finalYaml`, `templateParameters`, ...):
 
 ```json
 {
@@ -165,14 +166,13 @@ Returns the runs plus a continuation token when more pages are available:
       "id": 13590799,
       "name": "20251001.2",
       "createdDate": "2025-10-01T08:59:27.343Z",
+      "finishedDate": "2025-10-01T09:12:40.102Z",
       "state": "completed",
       "result": "succeeded",
       "pipeline": { "id": 69847, "name": "embed-confluence-content" },
-      "_links": {
-        "web": {
-          "href": "https://dev.azure.com/org/project/_build/results?buildId=13590799"
-        }
-      }
+      "commit": "96b684c7787e85a75880e06f869315657976f40d",
+      "refName": "refs/heads/main",
+      "webUrl": "https://dev.azure.com/org/project/_build/results?buildId=13590799"
     }
   ],
   "continuationToken": "eyJwYWdlIjoxfQ=="
@@ -213,10 +213,11 @@ Gets detailed information about a single pipeline run, including artifact listin
 | `projectId`  | string | No       | The ID or name of the project (Default: from environment)                   |
 | `runId`      | number | Yes      | Numeric ID of the pipeline run                                              |
 | `pipelineId` | number | No       | Optional guard to validate the run belongs to the specified pipeline        |
+| `includeDetails` | boolean | No | Return the full raw run payload (default `false`)                          |
 
 ### Response
 
-Returns the pipeline run enriched with artifact metadata:
+Returns the pipeline run enriched with artifact metadata. By default the run is a compact projection with `id`, `name`, `state`, `result`, `createdDate`, `finishedDate`, `pipeline` (`id`, `name`), `commit` and `refName` (the built commit SHA and source ref), and `webUrl` (the human-readable run URL). With `includeDetails: true` the full raw run payload is returned instead (`_links`, `url`, `resources`, `variables`, `finalYaml`, `templateParameters`, ...). Artifacts are included either way when present:
 
 ```json
 {
@@ -226,6 +227,9 @@ Returns the pipeline run enriched with artifact metadata:
   "result": "succeeded",
   "pipeline": { "id": 69847, "name": "embed-confluence-content" },
   "createdDate": "2025-10-01T08:59:27.343Z",
+  "commit": "96b684c7787e85a75880e06f869315657976f40d",
+  "refName": "refs/heads/main",
+  "webUrl": "https://dev.azure.com/org/project/_build/results?buildId=13590799",
   "artifacts": [
     {
       "name": "embedding-batch",

@@ -3,7 +3,12 @@ import {
   RunResult,
   RunState,
 } from 'azure-devops-node-api/interfaces/PipelinesInterfaces';
+import { fetchRunArtifacts } from '../artifacts';
 import { getPipelineRun } from './feature';
+
+jest.mock('../artifacts', () => ({
+  fetchRunArtifacts: jest.fn(),
+}));
 import {
   AzureDevOpsAuthenticationError,
   AzureDevOpsError,
@@ -32,6 +37,8 @@ describe('getPipelineRun unit', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+
+    (fetchRunArtifacts as jest.Mock).mockResolvedValue([]);
 
     mockRestGet = jest.fn();
 
@@ -66,11 +73,94 @@ describe('getPipelineRun unit', () => {
       runId: 200,
     });
 
-    expect(run).toEqual(baseRun);
+    expect(run).toEqual({
+      id: 200,
+      name: 'Run 200',
+      state: 'completed',
+      result: 'succeeded',
+      createdDate: new Date('2024-02-01T10:00:00Z'),
+      pipeline: { id: 42 },
+      webUrl: 'https://dev.azure.com/org/project/pipelines/run/200',
+    });
     expect(mockRestGet).toHaveBeenCalled();
     const [requestUrl] = mockRestGet.mock.calls[0];
     expect(requestUrl).toContain('/_apis/pipelines/runs/200');
     expect(requestUrl).toContain('api-version=7.1');
+  });
+
+  it('omits raw fields from the default projection', async () => {
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: baseRun,
+      headers: {},
+    });
+
+    const run = await getPipelineRun(mockConnection, {
+      projectId: 'test-project',
+      runId: 200,
+    });
+
+    expect(run).not.toHaveProperty('_links');
+    expect(run).not.toHaveProperty('url');
+    expect(run).not.toHaveProperty('resources');
+  });
+
+  it('returns the full raw run when includeDetails is true', async () => {
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: baseRun,
+      headers: {},
+    });
+
+    const run = await getPipelineRun(mockConnection, {
+      projectId: 'test-project',
+      runId: 200,
+      includeDetails: true,
+    });
+
+    expect(run).toEqual(baseRun);
+  });
+
+  it('projects commit and refName from repository resources', async () => {
+    const runWithRepo: Run = {
+      ...baseRun,
+      resources: {
+        repositories: {
+          self: { version: 'abc123', refName: 'refs/heads/main' },
+        },
+      },
+    };
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: runWithRepo,
+      headers: {},
+    });
+
+    const run = await getPipelineRun(mockConnection, {
+      projectId: 'test-project',
+      runId: 200,
+    });
+
+    expect(run).toMatchObject({ commit: 'abc123', refName: 'refs/heads/main' });
+  });
+
+  it('preserves artifacts in the compact projection', async () => {
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: baseRun,
+      headers: {},
+    });
+    (fetchRunArtifacts as jest.Mock).mockResolvedValue([
+      { name: 'out', type: 'Container' },
+    ]);
+
+    const run = await getPipelineRun(mockConnection, {
+      projectId: 'test-project',
+      runId: 200,
+    });
+
+    expect(run.artifacts).toEqual([{ name: 'out', type: 'Container' }]);
+    expect(run).not.toHaveProperty('_links');
   });
 
   it('uses build API to resolve pipeline id when not provided', async () => {
@@ -169,7 +259,15 @@ describe('getPipelineRun unit', () => {
       pipelineId: 42,
     });
 
-    expect(run).toEqual(baseRun);
+    expect(run).toEqual({
+      id: 200,
+      name: 'Run 200',
+      state: 'completed',
+      result: 'succeeded',
+      createdDate: new Date('2024-02-01T10:00:00Z'),
+      pipeline: { id: 42 },
+      webUrl: 'https://dev.azure.com/org/project/pipelines/run/200',
+    });
     expect(mockRestGet).toHaveBeenCalledTimes(2);
     const [firstUrl] = mockRestGet.mock.calls[0];
     const [secondUrl] = mockRestGet.mock.calls[1];

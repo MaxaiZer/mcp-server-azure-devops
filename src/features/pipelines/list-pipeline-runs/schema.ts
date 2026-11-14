@@ -44,4 +44,11 @@ export const ListPipelineRunsSchema = z.object({
     .enum(['createdDate desc', 'createdDate asc'])
     .default('createdDate desc')
     .describe('Sort order for run creation date'),
+  includeDetails: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'Return the full raw run payload (_links, url, resources, variables, finalYaml, templateParameters). By default only compact fields are returned (id, name, state, result, dates, pipeline, commit, refName, webUrl)',
+    ),
 });

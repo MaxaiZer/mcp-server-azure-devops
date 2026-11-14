@@ -27,13 +27,15 @@ export const pipelinesTools: ToolDefinition[] = [
   },
   {
     name: 'list_pipeline_runs',
-    description: 'List recent runs for a pipeline',
+    description:
+      'List recent runs for a pipeline (compact fields by default; pass includeDetails=true for the full raw run payload)',
     inputSchema: toJsonSchema(ListPipelineRunsSchema),
     mcp_enabled: true,
   },
   {
     name: 'get_pipeline_run',
-    description: 'Get details for a specific pipeline run',
+    description:
+      'Get details for a specific pipeline run with artifact summaries (compact fields by default; pass includeDetails=true for the full raw run payload)',
     inputSchema: toJsonSchema(GetPipelineRunSchema),
     mcp_enabled: true,
   },

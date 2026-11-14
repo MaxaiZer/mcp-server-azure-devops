@@ -7,15 +7,19 @@ import {
 } from '../../../shared/errors';
 import { apiVersion, defaultProject } from '../../../utils/environment';
 import { fetchRunArtifacts } from '../artifacts';
-import { coercePipelineId, resolvePipelineId } from '../helpers';
-import { GetPipelineRunOptions, PipelineRunDetails } from '../types';
+import { coercePipelineId, projectRun, resolvePipelineId } from '../helpers';
+import {
+  GetPipelineRunOptions,
+  GetPipelineRunResult,
+  PipelineRunDetails,
+} from '../types';
 
 const API_VERSION = apiVersion;
 
 export async function getPipelineRun(
   connection: WebApi,
   options: GetPipelineRunOptions,
-): Promise<PipelineRunDetails> {
+): Promise<GetPipelineRunResult> {
   try {
     const pipelinesApi = await connection.getPipelinesApi();
     const projectId = options.projectId ?? defaultProject;
@@ -102,7 +106,10 @@ export async function getPipelineRun(
       }
     }
 
-    return artifacts.length > 0 ? { ...run, artifacts } : run;
+    const result =
+      options.includeDetails === true ? run : projectRun(run, false);
+
+    return artifacts.length > 0 ? { ...result, artifacts } : result;
   } catch (error) {
     if (error instanceof AzureDevOpsError) {
       throw error;

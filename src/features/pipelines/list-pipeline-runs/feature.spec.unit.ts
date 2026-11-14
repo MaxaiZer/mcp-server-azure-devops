@@ -69,7 +69,14 @@ describe('listPipelineRuns unit', () => {
     expect(mockConnection.getPipelinesApi).toHaveBeenCalled();
     expect(mockRestGet).toHaveBeenCalled();
     expect(result.runs).toEqual([
-      { ...sampleRuns[0], state: 'completed', result: 'succeeded' },
+      {
+        id: 101,
+        name: 'Run 101',
+        state: 'completed',
+        result: 'succeeded',
+        createdDate: new Date('2024-01-01T10:00:00Z'),
+        webUrl: 'https://dev.azure.com/org/project/pipelines/run/101',
+      },
     ]);
     expect(result.continuationToken).toBe('token-from-header');
 
@@ -77,6 +84,70 @@ describe('listPipelineRuns unit', () => {
     const url = new URL(requestUrl);
     expect(url.searchParams.get('api-version')).toBe('7.1');
     expect(url.searchParams.get('$top')).toBe('50');
+  });
+
+  it('omits raw fields from the default projection', async () => {
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: { value: sampleRuns },
+      headers: {},
+    });
+
+    const result = await listPipelineRuns(mockConnection, {
+      projectId: 'test-project',
+      pipelineId: 42,
+    });
+
+    expect(result.runs[0]).not.toHaveProperty('_links');
+    expect(result.runs[0]).not.toHaveProperty('url');
+    expect(result.runs[0]).not.toHaveProperty('resources');
+  });
+
+  it('returns the full normalized run when includeDetails is true', async () => {
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: { value: sampleRuns },
+      headers: {},
+    });
+
+    const result = await listPipelineRuns(mockConnection, {
+      projectId: 'test-project',
+      pipelineId: 42,
+      includeDetails: true,
+    });
+
+    expect(result.runs).toEqual([
+      { ...sampleRuns[0], state: 'completed', result: 'succeeded' },
+    ]);
+  });
+
+  it('projects commit and refName from repository resources', async () => {
+    mockRestGet.mockResolvedValue({
+      statusCode: 200,
+      result: {
+        value: [
+          {
+            ...sampleRuns[0],
+            resources: {
+              repositories: {
+                self: { version: 'abc123', refName: 'refs/heads/main' },
+              },
+            },
+          },
+        ],
+      },
+      headers: {},
+    });
+
+    const result = await listPipelineRuns(mockConnection, {
+      projectId: 'test-project',
+      pipelineId: 42,
+    });
+
+    expect(result.runs[0]).toMatchObject({
+      commit: 'abc123',
+      refName: 'refs/heads/main',
+    });
   });
 
   it('applies filters, pagination, and branch normalization', async () => {
