@@ -1,107 +1,60 @@
 # Azure DevOps MCP Server
 
-A Model Context Protocol (MCP) server implementation for Azure DevOps, allowing AI assistants to interact with Azure DevOps APIs through a standardized protocol.
+A [Model Context Protocol](https://modelcontextprotocol.io/) server for Azure DevOps, so AI assistants can work with projects, work items, repositories, pull requests, pipelines and wikis through a standardized protocol.
 
-## Overview
+This is a personal fork of [Tiberriver256/mcp-server-azure-devops](https://github.com/Tiberriver256/mcp-server-azure-devops) (via [jhirschicultura/mcp-server-azure-devops](https://github.com/jhirschicultura/mcp-server-azure-devops)). It is not published on npm — run it from a local checkout.
 
-This server implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) for Azure DevOps, enabling AI assistants like Claude to interact with Azure DevOps resources securely. The server acts as a bridge between AI models and Azure DevOps APIs, providing a standardized way to:
+## What this fork changes
 
-- Access and manage projects, work items, repositories, and more
-- Create and update work items, branches, and pull requests
-- Execute common DevOps workflows through natural language
-- Access repository content via standardized resource URIs
-- Safely authenticate and interact with Azure DevOps resources
+Most of the work here is about keeping tool responses small enough to be useful in a real chat context:
 
-## Server Structure
+- **Compact responses by default.** `get_pull_request`, `list_pull_requests`, `get_pipeline_run` and `list_pipeline_runs` return a projection instead of the raw Azure DevOps payload. Identity objects (`createdBy`, `reviewers`, comment authors, …) are reduced to `{ id, displayName, uniqueName }`. Pass `includeDetails: true` to get the full API object.
+- **Context limits.** `get_file_content` supports `startLine`/`endLine` and caps output at 1000 lines / 20 000 characters / 1000 characters per line. `get_pull_request_changes` and `list_commits` return no diffs unless `includeDiffs: true`, and patches are truncated. Repository tree tools cap items, repositories and total output size. `search_code` returns snippets only with `includeContent: true`.
+- **Tool selection.** `tools.config.json` (or `AZURE_DEVOPS_TOOLS_CONFIG`) enables features and disables individual tools, so a client only sees what it needs.
+- **Safer file handling.** Attachment paths are confined to a sandbox directory (`AZURE_DEVOPS_ATTACHMENTS_DIR`, default: the current working directory); absolute paths and `..` traversal are rejected.
+- **Azure DevOps Server friendly.** PAT authentication, configurable REST api-version, on-prem error envelopes and `get_me` via `connectionData`.
 
-The server is structured around the Model Context Protocol (MCP) for communicating with AI assistants. It provides tools for interacting with Azure DevOps resources including:
+## Requirements
 
-- Projects
-- Work Items
-- Repositories
-- Pull Requests
-- Branches
-- Pipelines
+- Node.js 18 or newer
+- An Azure DevOps organization or an Azure DevOps Server collection
+- A Personal Access Token, Azure Identity credentials, or an Azure CLI login
 
-### Core Components
+## Getting started
 
-- **AzureDevOpsServer**: Main server class that initializes the MCP server and registers tools
-- **Feature Modules**: Organized by feature area (work-items, projects, repositories, etc.)
-- **Request Handlers**: Each feature module provides request identification and handling functions
-- **Tool Handlers**: Modular functions for each Azure DevOps operation
-- **Configuration**: Environment-based configuration for organization URL, PAT, etc.
-
-The server uses a feature-based architecture where each feature area (like work-items, projects, repositories) is encapsulated in its own module. This makes the codebase more maintainable and easier to extend with new features.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v16+)
-- npm or yarn
-- Azure DevOps account with appropriate access
-- Authentication credentials (see [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md) for details):
-  - Personal Access Token (PAT), or
-  - Azure Identity credentials, or
-  - Azure CLI login
-
-### Running from npm (npx)
-
-If you just want to run the **published** server package, you **do not** need to clone or build this repository:
+Clone and build:
 
 ```bash
-npx -y @tiberriver256/mcp-server-azure-devops
-```
-
-### Running locally (from source)
-
-From a checkout of this repository:
-
-```bash
+git clone https://github.com/MaxaiZer/mcp-server-azure-devops.git
+cd mcp-server-azure-devops
 npm ci
-cp .env.example .env   # then edit values
 npm run build
-npm start              # runs: node dist/index.js
 ```
 
-For iterative development (auto-reload):
+Optional: copy `.env.example` to `.env` and fill in your values (the server loads it automatically).
+
+Run it directly to check that it starts:
 
 ```bash
-npm run dev            # runs src/index.ts via tsx watch
+node dist/index.js
 ```
 
-### Usage with Claude Desktop/Cursor AI
+For development with auto-reload:
 
-To integrate with Claude Desktop or Cursor AI, add one of the following configurations to your configuration file.
+```bash
+npm run dev
+```
 
-#### Azure Identity Authentication
+## Using it from an MCP client
 
-Be sure you are logged in to Azure CLI with `az login` then add the following:
+Point the client at the built entry point with an absolute path:
 
 ```json
 {
   "mcpServers": {
     "azureDevOps": {
-      "command": "npx",
-      "args": ["-y", "@tiberriver256/mcp-server-azure-devops"],
-      "env": {
-        "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-organization",
-        "AZURE_DEVOPS_AUTH_METHOD": "azure-identity",
-        "AZURE_DEVOPS_DEFAULT_PROJECT": "your-project-name"
-      }
-    }
-  }
-}
-```
-
-#### Personal Access Token (PAT) Authentication
-
-```json
-{
-  "mcpServers": {
-    "azureDevOps": {
-      "command": "npx",
-      "args": ["-y", "@tiberriver256/mcp-server-azure-devops"],
+      "command": "node",
+      "args": ["/absolute/path/to/mcp-server-azure-devops/dist/index.js"],
       "env": {
         "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-organization",
         "AZURE_DEVOPS_AUTH_METHOD": "pat",
@@ -113,157 +66,165 @@ Be sure you are logged in to Azure CLI with `az login` then add the following:
 }
 ```
 
-Azure DevOps Server (on-prem) requires PAT authentication. Example:
+With Azure Identity (run `az login` first) use `"AZURE_DEVOPS_AUTH_METHOD": "azure-identity"` and drop the PAT. With `"azure-cli"` the server uses your Azure CLI login.
+
+For Azure DevOps Server, the organization URL is the collection URL and PAT is the only supported method:
 
 ```json
 {
   "mcpServers": {
     "azureDevOps": {
-      "command": "npx",
-      "args": ["-y", "@tiberriver256/mcp-server-azure-devops"],
+      "command": "node",
+      "args": ["/absolute/path/to/mcp-server-azure-devops/dist/index.js"],
       "env": {
         "AZURE_DEVOPS_ORG_URL": "https://server:8080/tfs/DefaultCollection",
         "AZURE_DEVOPS_AUTH_METHOD": "pat",
         "AZURE_DEVOPS_PAT": "<YOUR_PAT>",
-        "AZURE_DEVOPS_DEFAULT_PROJECT": "your-project-name"
+        "AZURE_DEVOPS_API_VERSION": "7.1"
       }
     }
   }
 }
 ```
 
-For detailed configuration instructions and more authentication options, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md).
+Detailed setup, examples and troubleshooting: [docs/authentication.md](docs/authentication.md) and [docs/examples](docs/examples).
 
-## Authentication Methods
+## Configuration
 
-This server supports multiple authentication methods for connecting to Azure DevOps APIs. For detailed setup instructions, configuration examples, and troubleshooting tips, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md).
+| Variable | Description | Required | Default |
+| --- | --- | --- | --- |
+| `AZURE_DEVOPS_ORG_URL` | Organization URL or Server collection URL | Yes | – |
+| `AZURE_DEVOPS_AUTH_METHOD` | `pat`, `azure-identity` or `azure-cli` (case-insensitive) | No | `azure-identity` |
+| `AZURE_DEVOPS_PAT` | Personal Access Token | With `pat` | – |
+| `AZURE_DEVOPS_DEFAULT_PROJECT` | Project used when a tool call omits one | No | – |
+| `AZURE_DEVOPS_API_VERSION` | REST api-version for tools that call the REST API directly | No | `7.1` |
+| `AZURE_TENANT_ID` | Azure AD tenant (service principals) | With service principals | – |
+| `AZURE_CLIENT_ID` | Azure AD application ID | With service principals | – |
+| `AZURE_CLIENT_SECRET` | Azure AD client secret | With service principals | – |
+| `AZURE_DEVOPS_TOOLS_CONFIG` | Path to a tools configuration file | No | `./tools.config.json` |
+| `AZURE_DEVOPS_ATTACHMENTS_DIR` | Directory that attachment file paths are confined to | No | current working directory |
+| `LOG_LEVEL` | `debug`, `info`, `warn` or `error` (`DEBUG=true` also enables debug) | No | – |
 
-### Supported Authentication Methods
+### Tool selection
 
-1. **Personal Access Token (PAT)** - Simple token-based authentication
-2. **Azure Identity (DefaultAzureCredential)** - Flexible authentication using the Azure Identity SDK
-3. **Azure CLI** - Authentication using your Azure CLI login
+`tools.config.json` is read at startup. If the file does not exist, every feature and tool is enabled.
 
-Example configuration files for each authentication method are available in the [examples directory](https://github.com/tiberriver256/mcp-server-azure-devops/tree/main/docs/examples).
+```json
+{
+  "features": {
+    "users": true,
+    "organizations": true,
+    "projects": true,
+    "repositories": true,
+    "work-items": true,
+    "search": true,
+    "pull-requests": true,
+    "pipelines": true,
+    "wikis": true
+  },
+  "tools": {
+    "disabled": ["trigger_pipeline", "create_commit"]
+  }
+}
+```
 
-Azure DevOps Server (on-prem) supports PAT authentication only. Azure Identity and Azure CLI are supported for Azure DevOps Services.
+See [tools.config.example.json](tools.config.example.json) and [tools.config.schema.json](tools.config.schema.json).
 
-## Environment Variables
+## Tools
 
-For a complete list of environment variables and their descriptions, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md#configuration-reference).
+For per-tool parameters and examples see the [tool documentation](docs/tools/README.md).
 
-Key environment variables include:
+### User
 
-| Variable                       | Description                                                                        | Required                     | Default          |
-| ------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------- | ---------------- |
-| `AZURE_DEVOPS_AUTH_METHOD`     | Authentication method (`pat`, `azure-identity`, or `azure-cli`) - case-insensitive | No                           | `azure-identity` |
-| `AZURE_DEVOPS_ORG_URL`         | Full URL to your Azure DevOps organization or Server collection (e.g., `https://server:8080/tfs/DefaultCollection`) | Yes                          | -                |
-| `AZURE_DEVOPS_PAT`             | Personal Access Token (for PAT auth)                                               | Only with PAT auth           | -                |
-| `AZURE_DEVOPS_DEFAULT_PROJECT` | Default project if none specified                                                  | No                           | -                |
-| `AZURE_DEVOPS_API_VERSION`     | REST api-version for the tools that call the REST API directly ([per-release values](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md#rest-api-version)) | No                           | `7.1`            |
-| `AZURE_TENANT_ID`              | Azure AD tenant ID (for service principals)                                        | Only with service principals | -                |
-| `AZURE_CLIENT_ID`              | Azure AD application ID (for service principals)                                   | Only with service principals | -                |
-| `AZURE_CLIENT_SECRET`          | Azure AD client secret (for service principals)                                    | Only with service principals | -                |
-| `LOG_LEVEL`                    | Logging level (debug, info, warn, error)                                           | No                           | info             |
+- `get_me` — authenticated user (Azure DevOps Services and Server)
 
-## Troubleshooting Authentication
+### Organizations
 
-For detailed troubleshooting information for each authentication method, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md#troubleshooting-authentication-issues).
+- `list_organizations` — organizations accessible to the current identity (Azure DevOps Services only)
 
-Common issues include:
+### Projects
 
-- Invalid or expired credentials
-- Insufficient permissions
-- Network connectivity problems
-- Configuration errors
+- `list_projects` — projects in the organization
+- `get_project` — project details
+- `get_project_details` — process, work item types and teams for a project
 
-## Authentication Implementation Details
+### Repositories
 
-For technical details about how authentication is implemented in the Azure DevOps MCP server, see the [Authentication Guide](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/authentication.md) and the source code in the `src/auth` directory.
+- `list_repositories` — repositories in a project
+- `get_repository` — repository details
+- `get_repository_details` — statistics and refs
+- `get_file_content` — file or directory content, with an optional line range
+- `get_repository_tree` — file tree from a path and depth
+- `get_all_repositories_tree` — file tree across repositories
+- `create_branch` — branch from an existing ref
+- `create_commit` — commit multiple changes using unified diffs or search/replace instructions
+- `list_commits` — commits on a branch, with optional diffs
 
-## Available Tools
+### Work items
 
-The Azure DevOps MCP server provides a variety of tools for interacting with Azure DevOps resources. For detailed documentation on each tool, please refer to the corresponding documentation.
+- `list_work_items` — query work items, with optional extra fields
+- `get_work_item` — work item details
+- `create_work_item` — create a work item
+- `update_work_item` — update fields, tags and links
+- `manage_work_item_link` — add, remove or update links between work items
+- `get_work_item_comments` — discussion history
+- `create_work_item_attachment` — attach a file from a local path or base64 content
+- `get_work_item_attachment` — download an attachment or view it inline
+- `list_work_item_attachments` — attachments on a work item
+- `delete_work_item_attachment` — delete an attachment
 
-### User Tools
+### Pull requests
 
-- `get_me`: Get details of the authenticated user (id, displayName, email) (Azure DevOps Services only)
+- `create_pull_request` — create a PR with reviewers, work items and tags
+- `get_pull_request` — PR details (compact by default)
+- `list_pull_requests` — PRs in a repository, filterable by status, creator, source and target branch
+- `update_pull_request` — update fields, reviewers, work items and tags
+- `get_pull_request_changes` — changed files and policy evaluations
+- `get_pull_request_checks` — status checks, policies and related pipelines
+- `get_pull_request_comments` — comment threads
+- `add_pull_request_comment` — reply in a thread, or start a file thread on a line or line range
+- `update_pull_request_comment` — edit a comment
+- `update_pull_request_thread_status` — resolve, reactivate or close a thread
 
-### Organization Tools
+### Pipelines
 
-- `list_organizations`: List all accessible organizations (Azure DevOps Services only)
+- `list_pipelines` — pipelines in a project
+- `get_pipeline` — pipeline details
+- `list_pipeline_runs` — runs with filters (compact by default)
+- `get_pipeline_run` — run details and artifacts (compact by default)
+- `pipeline_timeline` — stages and jobs of a run
+- `get_pipeline_log` — raw or JSON-formatted log content
+- `download_pipeline_artifact` — a single artifact file as text
+- `trigger_pipeline` — queue a run with parameters
 
-### Project Tools
+### Search
 
-- `list_projects`: List all projects in an organization
-- `get_project`: Get details of a specific project
-- `get_project_details`: Get comprehensive details of a project including process, work item types, and teams
+- `search_code` — code search across repositories
+- `search_wiki` — wiki search
+- `search_work_items` — work item search
 
-### Repository Tools
+### Wikis
 
-- `list_repositories`: List all repositories in a project
-- `get_repository`: Get details of a specific repository
-- `get_repository_details`: Get detailed information about a repository including statistics and refs
-- `get_file_content`: Get content of a file or directory from a repository
-- `get_repository_tree`: List a repository's file tree from any path and depth
-- `create_branch`: Create a new branch from an existing one
-- `create_commit`: Commit multiple file changes to a branch using unified diffs or search/replace instructions
+- `get_wikis` — wikis in a project
+- `get_wiki_page` — page content as plain text
+- `list_wiki_pages` — pages in a wiki
+- `create_wiki` — create a wiki
+- `create_wiki_page` — create a page
+- `update_wiki_page` — update page content
 
-### Work Item Tools
+## Resources
 
-- `get_work_item`: Retrieve a work item by ID
-- `create_work_item`: Create a new work item
-- `update_work_item`: Update an existing work item
-- `list_work_items`: List work items in a project
-- `manage_work_item_link`: Add, remove, or update links between work items
-- `create_work_item_attachment`: Upload and attach a file to a work item (from a local path or base64 content)
-- `get_work_item_attachment`: Download an attachment from a work item, or view it inline
-- `delete_work_item_attachment`: Delete an attachment from a work item
-- `list_work_item_attachments`: List the attachments on a work item
+Repositories, work items and pull requests can also be read through `azuredevops://` resource URIs. See [docs/tools/resources.md](docs/tools/resources.md).
 
-### Search Tools
+## Development
 
-- `search_code`: Search for code across repositories in a project
-- `search_wiki`: Search for content across wiki pages in a project
-- `search_work_items`: Search for work items across projects in Azure DevOps
-
-### Pipelines Tools
-
-- `list_pipelines`: List pipelines in a project
-- `get_pipeline`: Get details of a specific pipeline
-- `list_pipeline_runs`: List recent runs for a pipeline with optional filters
-- `get_pipeline_run`: Get detailed run information and artifact summaries
-- `download_pipeline_artifact`: Download a single artifact file as text
-- `pipeline_timeline`: Retrieve the stage and job timeline for a run
-- `get_pipeline_log`: Retrieve raw or JSON-formatted log content
-- `trigger_pipeline`: Trigger a pipeline run with customizable parameters
-
-### Wiki Tools
-
-- `get_wikis`: List all wikis in a project
-- `get_wiki_page`: Get content of a specific wiki page as plain text
-
-### Pull Request Tools
-
-- [`create_pull_request`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#create_pull_request) - Create a new pull request
-- [`get_pull_request`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request) - Get a pull request by ID
-- [`list_pull_requests`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#list_pull_requests) - List pull requests in a repository
-- [`add_pull_request_comment`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#add_pull_request_comment) - Add a comment to a pull request
-- [`get_pull_request_comments`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request_comments) - Get comments from a pull request
-- [`update_pull_request`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#update_pull_request) - Update an existing pull request (title, description, status, draft state, reviewers, work items)
-- [`get_pull_request_changes`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request_changes) - List changes in a pull request and policy evaluation status
-- [`get_pull_request_checks`](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/docs/tools/pull-requests.md#get_pull_request_checks) - Summarize status checks, policy evaluations, and their related pipelines
-
-For comprehensive documentation on all tools, see the [Tools Documentation](https://github.com/tiberriver256/mcp-server-azure-devops/tree/main/docs/tools).
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](https://github.com/tiberriver256/mcp-server-azure-devops/blob/main/CONTRIBUTING.md) for contribution guidelines.
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=tiberriver256/mcp-server-azure-devops&type=Date)](https://www.star-history.com/#tiberriver256/mcp-server-azure-devops&Date)
+```bash
+npm run lint          # eslint
+npm run format        # prettier
+npm test              # unit + integration + e2e
+npm run inspector     # MCP inspector against the built server
+```
 
 ## License
 
-MIT
+MIT. Based on [Tiberriver256/mcp-server-azure-devops](https://github.com/Tiberriver256/mcp-server-azure-devops) by Micah Rairdon, via [jhirschicultura/mcp-server-azure-devops](https://github.com/jhirschicultura/mcp-server-azure-devops). See [LICENSE](LICENSE).
