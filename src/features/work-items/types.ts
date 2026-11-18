@@ -166,5 +166,13 @@ export interface GetWorkItemCommentsOptions {
   order?: 'asc' | 'desc';
 }
 
+/**
+ * Result of getting work item comments along with any warnings produced
+ * while resolving the project that owns the work item
+ */
+export interface WorkItemCommentsResult extends CommentList {
+  warnings?: string[];
+}
+
 // Re-export WorkItem, WorkItemReference and CommentList types for convenience
 export type { WorkItem, WorkItemReference, CommentList };

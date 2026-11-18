@@ -68,7 +68,8 @@ export const workItemsTools: ToolDefinition[] = [
   },
   {
     name: 'get_work_item_comments',
-    description: 'Get comments and discussion history for a specific work item',
+    description:
+      'Get comments and discussion history for a specific work item. The project is resolved from the work item when projectId is omitted; if projectId does not contain the work item, comments are read from the project that actually owns it and a warning is returned.',
     inputSchema: toJsonSchema(GetWorkItemCommentsSchema),
   },
 ];

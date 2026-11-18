@@ -283,7 +283,12 @@ export const DeleteWorkItemAttachmentSchema = z.object({
  */
 export const GetWorkItemCommentsSchema = z.object({
   workItemId: z.number().describe('The ID of the work item'),
-  projectId: z.string().optional().describe('The ID or name of the project'),
+  projectId: z
+    .string()
+    .optional()
+    .describe(
+      'Project name or ID of the project that owns the work item. Optional - when omitted it is resolved from the work item. Do not pass the collection (organization) name here.',
+    ),
   top: z.number().optional().describe('Maximum number of comments to return'),
   continuationToken: z
     .string()

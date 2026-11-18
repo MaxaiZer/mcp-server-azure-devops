@@ -178,4 +178,200 @@ describe('getWorkItemComments unit', () => {
       getWorkItemComments(mockConnection, { workItemId: 123 }),
     ).rejects.toThrow('Failed to get work item comments: Forbidden');
   });
+
+  test('should not resolve the work item when projectId is provided and comments are found', async () => {
+    const mockGetWorkItem = jest.fn();
+    const mockGetComments = jest.fn().mockResolvedValue({
+      totalCount: 0,
+      count: 0,
+      comments: [],
+    });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
+        getComments: mockGetComments,
+      }),
+    };
+
+    const result = await getWorkItemComments(mockConnection, {
+      workItemId: 123,
+      projectId: 'myProject',
+    });
+
+    expect(mockGetComments).toHaveBeenCalledTimes(1);
+    expect(mockGetWorkItem).not.toHaveBeenCalled();
+    expect(result.totalCount).toBe(0);
+    expect(result.warnings).toBeUndefined();
+  });
+
+  test('should retry with the owning project and warn when projectId does not contain the work item', async () => {
+    const mockGetWorkItem = jest.fn().mockResolvedValue({
+      fields: { 'System.TeamProject': 'ownerProject' },
+    });
+    const mockGetComments = jest
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        totalCount: 1,
+        count: 1,
+        comments: [{ id: 1, text: 'Comment text' }],
+      });
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
+        getComments: mockGetComments,
+      }),
+    };
+
+    const result = await getWorkItemComments(mockConnection, {
+      workItemId: 123,
+      projectId: 'wrongProject',
+    });
+
+    expect(mockGetComments).toHaveBeenNthCalledWith(
+      1,
+      'wrongProject',
+      123,
+      undefined,
+      undefined,
+      undefined,
+      CommentExpandOptions.All,
+      CommentSortOrder.Asc,
+    );
+    expect(mockGetWorkItem).toHaveBeenCalledWith(123, ['System.TeamProject']);
+    expect(mockGetComments).toHaveBeenNthCalledWith(
+      2,
+      'ownerProject',
+      123,
+      undefined,
+      undefined,
+      undefined,
+      CommentExpandOptions.All,
+      CommentSortOrder.Asc,
+    );
+    expect(result.comments?.[0].text).toBe('Comment text');
+    expect(result.warnings).toEqual([
+      "projectId 'wrongProject' does not contain work item '123'; comments were read from project 'ownerProject'",
+    ]);
+  });
+
+  test('should report both projects when neither contains comments for the work item', async () => {
+    const mockGetWorkItem = jest.fn().mockResolvedValue({
+      fields: { 'System.TeamProject': 'ownerProject' },
+    });
+    const mockGetComments = jest.fn().mockResolvedValue(null);
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
+        getComments: mockGetComments,
+      }),
+    };
+
+    await expect(
+      getWorkItemComments(mockConnection, {
+        workItemId: 123,
+        projectId: 'wrongProject',
+      }),
+    ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
+
+    await expect(
+      getWorkItemComments(mockConnection, {
+        workItemId: 123,
+        projectId: 'wrongProject',
+      }),
+    ).rejects.toThrow(
+      "Comments for work item '123' not found in project 'wrongProject' nor in project 'ownerProject' (owner of the work item)",
+    );
+  });
+
+  test('should not retry when the work item does not exist', async () => {
+    const mockGetComments = jest.fn().mockResolvedValue(null);
+    const mockGetWorkItem = jest
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error('Not found'), { statusCode: 404 }),
+      );
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
+        getComments: mockGetComments,
+      }),
+    };
+
+    await expect(
+      getWorkItemComments(mockConnection, {
+        workItemId: 123,
+        projectId: 'wrongProject',
+      }),
+    ).rejects.toThrow("Work item '123' not found");
+
+    expect(mockGetComments).toHaveBeenCalledTimes(1);
+  });
+
+  test('should not retry when the provided project already owns the work item', async () => {
+    const mockGetWorkItem = jest.fn().mockResolvedValue({
+      fields: { 'System.TeamProject': 'myProject' },
+    });
+    const mockGetComments = jest.fn().mockResolvedValue(null);
+
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: mockGetWorkItem,
+        getComments: mockGetComments,
+      }),
+    };
+
+    await expect(
+      getWorkItemComments(mockConnection, {
+        workItemId: 123,
+        projectId: 'MYPROJECT',
+      }),
+    ).rejects.toThrow(
+      "Comments for work item '123' in project 'MYPROJECT' not found",
+    );
+
+    expect(mockGetComments).toHaveBeenCalledTimes(1);
+  });
+
+  test('should report the project when comments are missing on the resolved project', async () => {
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getWorkItem: jest.fn().mockResolvedValue({
+          fields: { 'System.TeamProject': 'ownerProject' },
+        }),
+        getComments: jest.fn().mockResolvedValue(null),
+      }),
+    };
+
+    await expect(
+      getWorkItemComments(mockConnection, { workItemId: 123 }),
+    ).rejects.toThrow(
+      "Comments for work item '123' in project 'ownerProject' not found",
+    );
+  });
+
+  test('should return an empty list for a work item without comments', async () => {
+    const mockGetComments = jest.fn().mockResolvedValue({
+      totalCount: 0,
+      count: 0,
+      comments: [],
+    });
+    const mockConnection: any = {
+      getWorkItemTrackingApi: jest.fn().mockResolvedValue({
+        getComments: mockGetComments,
+      }),
+    };
+
+    const result = await getWorkItemComments(mockConnection, {
+      workItemId: 123,
+      projectId: 'myProject',
+    });
+
+    expect(result.totalCount).toBe(0);
+    expect(result.comments).toEqual([]);
+    expect(result.warnings).toBeUndefined();
+  });
 });

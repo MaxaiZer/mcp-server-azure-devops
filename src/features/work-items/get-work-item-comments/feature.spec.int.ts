@@ -108,4 +108,35 @@ describeOrSkip('getWorkItemComments integration', () => {
       getWorkItemComments(connection, { workItemId: nonExistentId }),
     ).rejects.toThrow(AzureDevOpsResourceNotFoundError);
   });
+
+  test('should fall back to the owning project when projectId is not a project of the collection', async () => {
+    const result = await getWorkItemComments(connection, {
+      workItemId: testWorkItemId,
+      projectId: 'AS',
+    });
+
+    expect(result.comments?.length).toBeGreaterThanOrEqual(2);
+    expect(result.warnings?.[0]).toContain(
+      `projectId 'AS' does not contain work item '${testWorkItemId}'`,
+    );
+  });
+
+  test('should return an empty list for a work item without comments', async () => {
+    const workItem = await createWorkItem(connection, projectName, 'Task', {
+      title: `Test Work Item Without Comments ${new Date().toISOString()}`,
+    });
+
+    if (!workItem?.id) {
+      throw new Error('Failed to create work item for empty comments test');
+    }
+
+    const result = await getWorkItemComments(connection, {
+      workItemId: workItem.id,
+      projectId: projectName,
+    });
+
+    expect(result.totalCount).toBe(0);
+    expect(result.comments).toEqual([]);
+    expect(result.warnings).toBeUndefined();
+  });
 });
